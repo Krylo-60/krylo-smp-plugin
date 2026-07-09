@@ -1,0 +1,67 @@
+name: KryloSMP
+version: 1.0.0
+main: com.krylo.smp.KryloSMP
+api-version: '1.21'
+description: The ultimate all-in-one plugin for KryloSMP
+author: Krishiv
+website: https://krims-code-portal.vercel.app
+
+commands:
+  spawn:
+    description: Teleport to the server spawn
+    usage: /spawn
+  setspawn:
+    description: Set the server spawn location
+    usage: /setspawn
+    permission: krylosmp.admin
+  home:
+    description: Teleport to your saved home
+    usage: /home
+  sethome:
+    description: Set your home location
+    usage: /sethome
+  delhome:
+    description: Delete your saved home
+    usage: /delhome
+  tpa:
+    description: Send a teleport request to a player
+    usage: /tpa <player>
+  tpaccept:
+    description: Accept a pending teleport request
+    usage: /tpaccept
+  tpdeny:
+    description: Deny a pending teleport request
+    usage: /tpdeny
+  balance:
+    description: Check your coin balance
+    usage: /balance [player]
+    aliases: [bal, money]
+  pay:
+    description: Send coins to another player
+    usage: /pay <player> <amount>
+  shop:
+    description: Open the server shop GUI
+    usage: /shop
+  customitem:
+    description: Give yourself a custom legendary weapon
+    usage: /customitem <item>
+    permission: krylosmp.admin
+    aliases: [ci]
+  krylo:
+    description: Main KryloSMP plugin info command
+    usage: /krylo
+    aliases: [ksmp]
+
+permissions:
+  krylosmp.admin:
+    description: Admin permissions for KryloSMP
+    default: op
+  krylosmp.tpa:
+    description: Allow teleport requests
+    default: true
+  krylosmp.home:
+    description: Allow home commands
+    default: true
+  krylosmp.economy:
+    description: Allow economy commands
+    default: true

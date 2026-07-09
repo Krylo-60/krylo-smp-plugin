@@ -1,0 +1,43 @@
+# ═══════════════════════════════════════════
+# KryloSMP Plugin Configuration
+# Built by Krishiv — krylosmp.aternos.me
+# ═══════════════════════════════════════════
+
+# Server spawn protection radius (blocks)
+spawn-protection-radius: 16
+
+# Starting balance for new players
+starting-balance: 500.0
+
+# Welcome message settings
+welcome:
+  enabled: true
+  title: "&b⚡ &fWelcome to &6KryloSMP &b⚡"
+  subtitle: "&7Built by Krishiv — Have fun!"
+  chat-message: "&8[&6KryloSMP&8] &aWelcome &e{player} &ato the server! &7(#{count})"
+
+# Chat format
+chat:
+  format: "&8[&a${balance}⛃&8] &7{player} &f» &r{message}"
+
+# Shop items (material : price)
+shop:
+  diamond: 100
+  iron_ingot: 10
+  gold_ingot: 25
+  emerald: 75
+  netherite_ingot: 500
+  enchanted_golden_apple: 250
+  elytra: 1000
+  trident: 800
+  totem_of_undying: 600
+  shulker_box: 300
+
+# TPA request timeout in seconds
+tpa-timeout: 60
+
+# Kill reward coins
+kill-reward: 25.0
+
+# Death penalty coins
+death-penalty: 10.0
