@@ -55,6 +55,10 @@ commands:
     description: Regenerate the Neon Velocity spawn platform
     usage: /buildspawn
     permission: krylosmp.admin
+  rtp:
+    description: Random teleport to a safe location in the world
+    usage: /rtp
+    aliases: [wild, randomtp]
 
 permissions:
   krylosmp.admin:

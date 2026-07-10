@@ -58,6 +58,11 @@ public final class KryloSMP extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new CombatListener(this), this);
 
+        // Register RTP (Random Teleport) command + pressure plate listener
+        RtpCommand rtpCmd = new RtpCommand(this);
+        getCommand("rtp").setExecutor(rtpCmd);
+        getServer().getPluginManager().registerEvents(new SpawnInteractionListener(this, rtpCmd), this);
+
         // Register all commands
         SpawnCommand spawnCmd = new SpawnCommand(this);
         getCommand("spawn").setExecutor(spawnCmd);

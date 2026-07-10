@@ -202,6 +202,51 @@ public class SpawnGenerator {
         spawnSubHologram(world, hx, hySub, hz, 90.0f);
         spawnSubHologram(world, hx, hySub, hz, -90.0f);
 
+        // ═══════════════════════════════════════
+        // 7. BUILD RTP (RANDOM TELEPORT) PADS
+        //    4 gold pads around center — step on to teleport
+        //    to a random safe spot in the world
+        // ═══════════════════════════════════════
+        int[][] rtpPadPositions = {
+            {centerX + 5, centerZ},      // East pad
+            {centerX - 5, centerZ},      // West pad
+            {centerX, centerZ + 5},      // South pad
+            {centerX, centerZ - 5}       // North pad
+        };
+
+        for (int[] pad : rtpPadPositions) {
+            int px = pad[0];
+            int pz = pad[1];
+
+            // Gold block base (3x3)
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    world.getBlockAt(px + dx, centerY, pz + dz).setType(Material.GOLD_BLOCK);
+                }
+            }
+
+            // Gold pressure plate on top (center)
+            world.getBlockAt(px, centerY + 1, pz).setType(Material.LIGHT_WEIGHTED_PRESSURE_PLATE);
+
+            // Glowstone corners for visibility
+            world.getBlockAt(px - 1, centerY + 1, pz - 1).setType(Material.GLOWSTONE);
+            world.getBlockAt(px + 1, centerY + 1, pz - 1).setType(Material.GLOWSTONE);
+            world.getBlockAt(px - 1, centerY + 1, pz + 1).setType(Material.GLOWSTONE);
+            world.getBlockAt(px + 1, centerY + 1, pz + 1).setType(Material.GLOWSTONE);
+
+            // Label hologram above pad
+            Location labelLoc = new Location(world, px + 0.5, centerY + 2.5, pz + 0.5);
+            ArmorStand label = (ArmorStand) world.spawnEntity(labelLoc, EntityType.ARMOR_STAND);
+            label.setVisible(false);
+            label.setGravity(false);
+            label.setInvulnerable(true);
+            label.setCustomNameVisible(true);
+            label.setCustomName(ChatColor.GOLD + "⚡ " + ChatColor.GREEN + "STEP TO RANDOM TP" + ChatColor.GOLD + " ⚡");
+            label.setSmall(true);
+            label.setMarker(true);
+            label.addScoreboardTag(HOLOGRAM_TAG);
+        }
+
         // Update world spawn to platform center
         world.setSpawnLocation(centerX, centerY + 1, centerZ);
 
