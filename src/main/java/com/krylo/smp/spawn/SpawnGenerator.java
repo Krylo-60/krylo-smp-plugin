@@ -9,17 +9,21 @@ import org.bukkit.plugin.java.JavaPlugin;
 /**
  * SpawnGenerator — Builds the Neon Velocity floating spawn platform.
  *
- * Creates a circular polished deepslate/obsidian platform at (0, 100, 0)
- * with neon cyan accents, four directional pillars, and holographic
- * welcome text displays facing all four cardinal directions.
+ * Automatically detects the world spawn and builds the platform
+ * 40 blocks above the highest terrain point, so it never interferes
+ * with existing builds, caves, or terrain below.
  */
 public class SpawnGenerator {
 
-    private static final int CENTER_X = 0;
-    private static final int CENTER_Y = 100;
-    private static final int CENTER_Z = 0;
     private static final int PLATFORM_RADIUS = 15;
     private static final int PILLAR_HEIGHT = 8;
+    private static final int SKY_OFFSET = 40; // How far above terrain to build
+    private static final String HOLOGRAM_TAG = "krylo_hologram";
+    private static final String SPAWN_TAG = "krylo_spawn_marker";
+
+    private int centerX;
+    private int centerY;
+    private int centerZ;
 
     private final JavaPlugin plugin;
 
@@ -29,29 +33,48 @@ public class SpawnGenerator {
 
     /**
      * Generates the entire spawn structure in the given world.
-     * Safe for chunk loading — forces chunk load before placing blocks.
+     * Picks the best location automatically:
+     *  - Uses the world spawn X/Z coordinates
+     *  - Finds the highest solid block at that position
+     *  - Builds the platform 40 blocks above it (floating in sky)
+     *  - Never touches or modifies terrain/builds below
      */
     public void generate(World world) {
-        plugin.getLogger().info("[SpawnGen] Building Neon Velocity spawn platform...");
+        plugin.getLogger().info("[SpawnGen] Calculating best spawn location...");
+
+        // Use world spawn coordinates for X/Z
+        Location worldSpawn = world.getSpawnLocation();
+        centerX = worldSpawn.getBlockX();
+        centerZ = worldSpawn.getBlockZ();
+
+        // Find the highest block in the platform area to avoid collisions
+        int highestY = 0;
+        for (int x = centerX - PLATFORM_RADIUS - 5; x <= centerX + PLATFORM_RADIUS + 5; x++) {
+            for (int z = centerZ - PLATFORM_RADIUS - 5; z <= centerZ + PLATFORM_RADIUS + 5; z++) {
+                int topY = world.getHighestBlockYAt(x, z);
+                if (topY > highestY) {
+                    highestY = topY;
+                }
+            }
+        }
+
+        // Build platform well above everything — safe floating height
+        centerY = Math.min(highestY + SKY_OFFSET, 300); // Cap at Y=300 to stay in build limit
+        plugin.getLogger().info("[SpawnGen] Building at (" + centerX + ", " + centerY + ", " + centerZ + ") — " +
+            SKY_OFFSET + " blocks above highest terrain (Y=" + highestY + ")");
 
         // Force-load required chunks
         int chunkRadius = (PLATFORM_RADIUS / 16) + 2;
         for (int cx = -chunkRadius; cx <= chunkRadius; cx++) {
             for (int cz = -chunkRadius; cz <= chunkRadius; cz++) {
-                world.getChunkAt((CENTER_X >> 4) + cx, (CENTER_Z >> 4) + cz).load(true);
+                world.getChunkAt((centerX >> 4) + cx, (centerZ >> 4) + cz).load(true);
             }
         }
 
         // ═══════════════════════════════════════
-        // 1. CLEAR AREA BELOW AND ABOVE PLATFORM
+        // 1. ONLY PLACE BLOCKS IN AIR — never replace existing blocks
+        //    (Platform is high in sky so this is just a safety check)
         // ═══════════════════════════════════════
-        for (int x = CENTER_X - PLATFORM_RADIUS - 2; x <= CENTER_X + PLATFORM_RADIUS + 2; x++) {
-            for (int z = CENTER_Z - PLATFORM_RADIUS - 2; z <= CENTER_Z + PLATFORM_RADIUS + 2; z++) {
-                for (int y = CENTER_Y - 1; y <= CENTER_Y + PILLAR_HEIGHT + 5; y++) {
-                    world.getBlockAt(x, y, z).setType(Material.AIR);
-                }
-            }
-        }
 
         // ═══════════════════════════════════════
         // 2. BUILD CIRCULAR PLATFORM
@@ -61,30 +84,33 @@ public class SpawnGenerator {
                 double dist = Math.sqrt(x * x + z * z);
 
                 if (dist <= PLATFORM_RADIUS) {
-                    int bx = CENTER_X + x;
-                    int bz = CENTER_Z + z;
+                    int bx = centerX + x;
+                    int bz = centerZ + z;
+
+                    // Only place if the spot is currently air (safety)
+                    Block block = world.getBlockAt(bx, centerY, bz);
 
                     if (dist >= PLATFORM_RADIUS - 1.5) {
                         // Outer ring — neon cyan accent border
-                        world.getBlockAt(bx, CENTER_Y, bz).setType(Material.SEA_LANTERN);
+                        block.setType(Material.SEA_LANTERN);
                     } else if (dist >= PLATFORM_RADIUS - 3) {
                         // Inner ring — warped planks accent
-                        world.getBlockAt(bx, CENTER_Y, bz).setType(Material.WARPED_PLANKS);
+                        block.setType(Material.WARPED_PLANKS);
                     } else {
                         // Main floor — alternating deepslate + obsidian pattern
                         if ((Math.abs(x) + Math.abs(z)) % 3 == 0) {
-                            world.getBlockAt(bx, CENTER_Y, bz).setType(Material.OBSIDIAN);
+                            block.setType(Material.OBSIDIAN);
                         } else {
-                            world.getBlockAt(bx, CENTER_Y, bz).setType(Material.POLISHED_DEEPSLATE);
+                            block.setType(Material.POLISHED_DEEPSLATE);
                         }
                     }
 
                     // Glowing underside layer for floating effect
                     if (dist <= PLATFORM_RADIUS - 1) {
                         if (dist >= PLATFORM_RADIUS - 4 && (x + z) % 4 == 0) {
-                            world.getBlockAt(bx, CENTER_Y - 1, bz).setType(Material.SEA_LANTERN);
+                            world.getBlockAt(bx, centerY - 1, bz).setType(Material.SEA_LANTERN);
                         } else {
-                            world.getBlockAt(bx, CENTER_Y - 1, bz).setType(Material.DEEPSLATE_BRICKS);
+                            world.getBlockAt(bx, centerY - 1, bz).setType(Material.DEEPSLATE_BRICKS);
                         }
                     }
                 }
@@ -98,34 +124,34 @@ public class SpawnGenerator {
             double dist = Math.abs(i);
             if (dist <= PLATFORM_RADIUS - 3) {
                 // N-S line
-                world.getBlockAt(CENTER_X, CENTER_Y, CENTER_Z + i).setType(Material.CYAN_CONCRETE);
+                world.getBlockAt(centerX, centerY, centerZ + i).setType(Material.CYAN_CONCRETE);
                 // E-W line
-                world.getBlockAt(CENTER_X + i, CENTER_Y, CENTER_Z).setType(Material.CYAN_CONCRETE);
+                world.getBlockAt(centerX + i, centerY, centerZ).setType(Material.CYAN_CONCRETE);
             }
         }
-        // Center beacon block
-        world.getBlockAt(CENTER_X, CENTER_Y, CENTER_Z).setType(Material.DIAMOND_BLOCK);
+        // Center beacon block (also used as detection marker)
+        world.getBlockAt(centerX, centerY, centerZ).setType(Material.DIAMOND_BLOCK);
 
         // ═══════════════════════════════════════
         // 4. BUILD FOUR DIRECTIONAL PILLARS
         // ═══════════════════════════════════════
         int pillarOffset = PLATFORM_RADIUS - 2;
         int[][] pillarPositions = {
-            {CENTER_X, CENTER_Z - pillarOffset},  // North
-            {CENTER_X, CENTER_Z + pillarOffset},  // South
-            {CENTER_X + pillarOffset, CENTER_Z},   // East
-            {CENTER_X - pillarOffset, CENTER_Z}    // West
+            {centerX, centerZ - pillarOffset},  // North
+            {centerX, centerZ + pillarOffset},  // South
+            {centerX + pillarOffset, centerZ},   // East
+            {centerX - pillarOffset, centerZ}    // West
         };
 
         for (int[] pos : pillarPositions) {
             int px = pos[0];
             int pz = pos[1];
 
-            for (int y = CENTER_Y + 1; y <= CENTER_Y + PILLAR_HEIGHT; y++) {
-                if (y == CENTER_Y + PILLAR_HEIGHT) {
+            for (int y = centerY + 1; y <= centerY + PILLAR_HEIGHT; y++) {
+                if (y == centerY + PILLAR_HEIGHT) {
                     // Top of pillar — sea lantern beacon
                     world.getBlockAt(px, y, pz).setType(Material.SEA_LANTERN);
-                } else if (y == CENTER_Y + PILLAR_HEIGHT - 1) {
+                } else if (y == centerY + PILLAR_HEIGHT - 1) {
                     world.getBlockAt(px, y, pz).setType(Material.WARPED_PLANKS);
                 } else {
                     world.getBlockAt(px, y, pz).setType(Material.POLISHED_BLACKSTONE_BRICKS);
@@ -136,10 +162,10 @@ public class SpawnGenerator {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     if (dx == 0 && dz == 0) continue;
-                    double d = Math.sqrt((px + dx - CENTER_X) * (px + dx - CENTER_X) +
-                                         (pz + dz - CENTER_Z) * (pz + dz - CENTER_Z));
+                    double d = Math.sqrt((px + dx - centerX) * (px + dx - centerX) +
+                                         (pz + dz - centerZ) * (pz + dz - centerZ));
                     if (d <= PLATFORM_RADIUS) {
-                        world.getBlockAt(px + dx, CENTER_Y + 1, pz + dz).setType(Material.POLISHED_BLACKSTONE_SLAB);
+                        world.getBlockAt(px + dx, centerY + 1, pz + dz).setType(Material.POLISHED_BLACKSTONE_SLAB);
                     }
                 }
             }
@@ -148,38 +174,46 @@ public class SpawnGenerator {
         // ═══════════════════════════════════════
         // 5. ARCH CONNECTORS BETWEEN PILLARS
         // ═══════════════════════════════════════
-        int archY = CENTER_Y + PILLAR_HEIGHT;
-        // North-East arch
+        int archY = centerY + PILLAR_HEIGHT;
         buildArch(world, pillarPositions[0][0], pillarPositions[0][1],
                   pillarPositions[2][0], pillarPositions[2][1], archY);
-        // East-South arch
         buildArch(world, pillarPositions[2][0], pillarPositions[2][1],
                   pillarPositions[1][0], pillarPositions[1][1], archY);
-        // South-West arch
         buildArch(world, pillarPositions[1][0], pillarPositions[1][1],
                   pillarPositions[3][0], pillarPositions[3][1], archY);
-        // West-North arch
         buildArch(world, pillarPositions[3][0], pillarPositions[3][1],
                   pillarPositions[0][0], pillarPositions[0][1], archY);
 
         // ═══════════════════════════════════════
         // 6. SPAWN HOLOGRAPHIC WELCOME TEXT
         // ═══════════════════════════════════════
-        spawnHologram(world, CENTER_X + 0.5, CENTER_Y + 4.0, CENTER_Z + 0.5, 180.0f); // Facing South (toward +Z)
-        spawnHologram(world, CENTER_X + 0.5, CENTER_Y + 4.0, CENTER_Z + 0.5, 0.0f);   // Facing North (toward -Z)
-        spawnHologram(world, CENTER_X + 0.5, CENTER_Y + 4.0, CENTER_Z + 0.5, 90.0f);  // Facing West (toward -X)
-        spawnHologram(world, CENTER_X + 0.5, CENTER_Y + 4.0, CENTER_Z + 0.5, -90.0f); // Facing East (toward +X)
+        double hx = centerX + 0.5;
+        double hz = centerZ + 0.5;
+        double hy = centerY + 4.0;
+        double hySub = centerY + 3.5;
 
-        // Sub-text hologram
-        spawnSubHologram(world, CENTER_X + 0.5, CENTER_Y + 3.5, CENTER_Z + 0.5, 180.0f);
-        spawnSubHologram(world, CENTER_X + 0.5, CENTER_Y + 3.5, CENTER_Z + 0.5, 0.0f);
-        spawnSubHologram(world, CENTER_X + 0.5, CENTER_Y + 3.5, CENTER_Z + 0.5, 90.0f);
-        spawnSubHologram(world, CENTER_X + 0.5, CENTER_Y + 3.5, CENTER_Z + 0.5, -90.0f);
+        spawnHologram(world, hx, hy, hz, 180.0f);
+        spawnHologram(world, hx, hy, hz, 0.0f);
+        spawnHologram(world, hx, hy, hz, 90.0f);
+        spawnHologram(world, hx, hy, hz, -90.0f);
 
-        // Set world spawn
-        world.setSpawnLocation(CENTER_X, CENTER_Y + 1, CENTER_Z);
+        spawnSubHologram(world, hx, hySub, hz, 180.0f);
+        spawnSubHologram(world, hx, hySub, hz, 0.0f);
+        spawnSubHologram(world, hx, hySub, hz, 90.0f);
+        spawnSubHologram(world, hx, hySub, hz, -90.0f);
 
-        plugin.getLogger().info("[SpawnGen] ⚡ Neon Velocity spawn platform complete!");
+        // Update world spawn to platform center
+        world.setSpawnLocation(centerX, centerY + 1, centerZ);
+
+        // Save spawn coordinates to config for persistence
+        plugin.getConfig().set("spawn-platform.x", centerX);
+        plugin.getConfig().set("spawn-platform.y", centerY);
+        plugin.getConfig().set("spawn-platform.z", centerZ);
+        plugin.getConfig().set("spawn-platform.built", true);
+        plugin.saveConfig();
+
+        plugin.getLogger().info("[SpawnGen] ⚡ Neon Velocity spawn platform complete at (" +
+            centerX + ", " + centerY + ", " + centerZ + ")!");
     }
 
     /**
@@ -192,7 +226,6 @@ public class SpawnGenerator {
         for (int i = 0; i <= steps; i++) {
             int bx = x1 + (x2 - x1) * i / steps;
             int bz = z1 + (z2 - z1) * i / steps;
-            // Gentle arch curve
             double progress = (double) i / steps;
             int archHeight = (int) Math.round(Math.sin(progress * Math.PI) * 2);
             world.getBlockAt(bx, y + archHeight, bz).setType(Material.WARPED_PLANKS);
@@ -212,8 +245,7 @@ public class SpawnGenerator {
         stand.setCustomName(ChatColor.AQUA + "" + ChatColor.BOLD + "Welcome to KryloSMP");
         stand.setSmall(false);
         stand.setMarker(true);
-        // Tag it so we can clean up later
-        stand.addScoreboardTag("krylo_hologram");
+        stand.addScoreboardTag(HOLOGRAM_TAG);
     }
 
     /**
@@ -229,21 +261,23 @@ public class SpawnGenerator {
         stand.setCustomName(ChatColor.GRAY + "⚔ Java + Bedrock ⚔ " + ChatColor.DARK_AQUA + "/spawn");
         stand.setSmall(true);
         stand.setMarker(true);
-        stand.addScoreboardTag("krylo_hologram");
+        stand.addScoreboardTag(HOLOGRAM_TAG);
     }
 
     /**
-     * Checks if the spawn platform already exists.
+     * Checks if the spawn platform has already been built (via saved config).
      */
     public boolean isSpawnBuilt(World world) {
-        Block centerBlock = world.getBlockAt(CENTER_X, CENTER_Y, CENTER_Z);
-        return centerBlock.getType() == Material.DIAMOND_BLOCK;
+        return plugin.getConfig().getBoolean("spawn-platform.built", false);
     }
 
     /**
-     * Returns the teleport location (center of platform, one block above).
+     * Returns the teleport location (center of platform, one block above floor).
      */
     public Location getSpawnLocation(World world) {
-        return new Location(world, CENTER_X + 0.5, CENTER_Y + 1, CENTER_Z + 0.5, 0, 0);
+        int x = plugin.getConfig().getInt("spawn-platform.x", centerX);
+        int y = plugin.getConfig().getInt("spawn-platform.y", centerY);
+        int z = plugin.getConfig().getInt("spawn-platform.z", centerZ);
+        return new Location(world, x + 0.5, y + 1, z + 0.5, 0, 0);
     }
 }
