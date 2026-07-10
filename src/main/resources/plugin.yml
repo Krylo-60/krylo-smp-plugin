@@ -1,8 +1,8 @@
 name: KryloSMP
-version: 1.0.0
+version: 2.0.0
 main: com.krylo.smp.KryloSMP
 api-version: '1.21'
-description: The ultimate all-in-one plugin for KryloSMP
+description: The ultimate all-in-one plugin for KryloSMP — Neon Velocity Edition
 author: Krishiv
 website: https://krims-code-portal.vercel.app
 
@@ -51,6 +51,10 @@ commands:
     description: Main KryloSMP plugin info command
     usage: /krylo
     aliases: [ksmp]
+  buildspawn:
+    description: Regenerate the Neon Velocity spawn platform
+    usage: /buildspawn
+    permission: krylosmp.admin
 
 permissions:
   krylosmp.admin:

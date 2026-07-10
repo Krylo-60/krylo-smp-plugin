@@ -1,7 +1,10 @@
 package com.krylo.smp.listeners;
 
 import com.krylo.smp.KryloSMP;
+import com.krylo.smp.spawn.SpawnGenerator;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -10,7 +13,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
- * Handles player join/quit events with welcome titles and chat messages.
+ * Handles player join/quit events with welcome titles, chat messages,
+ * and instant teleportation to the Neon Velocity spawn platform.
  */
 public class JoinListener implements Listener {
 
@@ -28,6 +32,19 @@ public class JoinListener implements Listener {
         // Initialize economy for new players
         if (plugin.getBalance(player.getUniqueId()) == plugin.getConfig().getDouble("starting-balance", 500.0)) {
             plugin.setBalance(player.getUniqueId(), plugin.getConfig().getDouble("starting-balance", 500.0));
+        }
+
+        // ── Instant Teleport to Spawn Platform ──────────────
+        SpawnGenerator gen = plugin.getSpawnGenerator();
+        if (gen != null) {
+            // Delay 1 tick to ensure player is fully loaded into world
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                Location spawnLoc = gen.getSpawnLocation(
+                    Bukkit.getWorlds().get(0)
+                );
+                player.teleport(spawnLoc);
+                player.playSound(spawnLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
+            }, 5L);
         }
 
         boolean welcomeEnabled = plugin.getConfig().getBoolean("welcome.enabled", true);

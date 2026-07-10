@@ -2,7 +2,10 @@ package com.krylo.smp;
 
 import com.krylo.smp.commands.*;
 import com.krylo.smp.listeners.*;
+import com.krylo.smp.spawn.SpawnGenerator;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
@@ -32,6 +35,9 @@ public final class KryloSMP extends JavaPlugin {
 
     // TPA pending requests: target UUID -> requester UUID
     private final Map<UUID, UUID> tpaRequests = new HashMap<>();
+
+    // Spawn generator
+    private SpawnGenerator spawnGenerator;
 
     // Player join count
     private int totalJoins = 0;
@@ -85,10 +91,42 @@ public final class KryloSMP extends JavaPlugin {
             return true;
         });
 
+        getCommand("buildspawn").setExecutor((sender, cmd, label, args) -> {
+            if (!(sender instanceof org.bukkit.entity.Player)) {
+                sender.sendMessage("This command can only be used by players.");
+                return true;
+            }
+            org.bukkit.entity.Player p = (org.bukkit.entity.Player) sender;
+            if (!p.isOp()) {
+                p.sendMessage(ChatColor.RED + "You must be an operator to use this command!");
+                return true;
+            }
+            p.sendMessage(ChatColor.GOLD + "⚡ Regenerating Neon Velocity spawn platform...");
+            // Remove old holograms first
+            p.getWorld().getEntities().stream()
+                .filter(e -> e.getScoreboardTags().contains("krylo_hologram"))
+                .forEach(org.bukkit.entity.Entity::remove);
+            spawnGenerator.generate(p.getWorld());
+            p.sendMessage(ChatColor.GREEN + "✓ Spawn platform rebuilt successfully!");
+            return true;
+        });
+
         getLogger().info("═══════════════════════════════════════");
         getLogger().info("  ⚡ KryloSMP v" + getDescription().getVersion() + " ENABLED");
         getLogger().info("  Built by Krishiv — All systems online!");
         getLogger().info("═══════════════════════════════════════");
+
+        // Build spawn platform on first run (delayed to ensure world is loaded)
+        spawnGenerator = new SpawnGenerator(this);
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            World world = Bukkit.getWorlds().get(0); // Overworld
+            if (!spawnGenerator.isSpawnBuilt(world)) {
+                spawnGenerator.generate(world);
+                getLogger().info("⚡ Neon Velocity spawn platform built!");
+            } else {
+                getLogger().info("⚡ Spawn platform already exists, skipping generation.");
+            }
+        }, 40L); // 2 second delay for world load
     }
 
     @Override
@@ -160,5 +198,9 @@ public final class KryloSMP extends JavaPlugin {
 
     public static KryloSMP getInstance() {
         return instance;
+    }
+
+    public SpawnGenerator getSpawnGenerator() {
+        return spawnGenerator;
     }
 }
