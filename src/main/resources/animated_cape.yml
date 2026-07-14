@@ -1,0 +1,5 @@
+name: "Custom Animated Cape"
+permission: "cosmetics.cape.custom"
+animate: true
+frames: 12
+frame-delay: 2

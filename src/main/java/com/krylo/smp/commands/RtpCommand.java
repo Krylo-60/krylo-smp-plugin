@@ -66,7 +66,9 @@ public class RtpCommand implements CommandExecutor {
                     // Load the chunk first
                     safeLoc.getChunk().load(true);
 
-                    player.teleport(safeLoc);
+                    // Apply premium sci-fi warp effects
+                    performWarpEffects(player, safeLoc);
+
                     cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
 
                     player.sendMessage("");
@@ -76,11 +78,6 @@ public class RtpCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.GRAY + "  Explore and build your base here! Use " +
                         ChatColor.YELLOW + "/sethome" + ChatColor.GRAY + " to save this location.");
                     player.sendMessage("");
-
-                    player.playSound(safeLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.2f);
-
-                    // Cool particle effect
-                    world.spawnParticle(Particle.PORTAL, safeLoc, 50, 1, 1, 1, 0.5);
                 } else {
                     player.sendMessage(ChatColor.RED + "❌ Couldn't find a safe location. Try again!");
                 }
@@ -88,6 +85,26 @@ public class RtpCommand implements CommandExecutor {
         });
 
         return true;
+    }
+
+    /**
+     * Triggers glowing particles, layered warp sounds, and screen effects.
+     */
+    public void performWarpEffects(Player player, Location safeLoc) {
+        player.teleport(safeLoc);
+
+        // Play dual warp sounds (layered)
+        player.playSound(safeLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+        player.playSound(safeLoc, Sound.BLOCK_BEACON_ACTIVATE, 1.0f, 1.5f);
+
+        // Spawn a blast of portal particles
+        player.getWorld().spawnParticle(Particle.PORTAL, safeLoc.clone().add(0, 1, 0), 100, 0.5, 1.0, 0.5, 0.1);
+
+        // Apply visual screen warp effects (Nausea & Blindness)
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+            org.bukkit.potion.PotionEffectType.NAUSEA, 40, 1));
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+            org.bukkit.potion.PotionEffectType.BLINDNESS, 20, 1));
     }
 
     /**

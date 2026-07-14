@@ -1,5 +1,5 @@
 name: KryloSMP
-version: 2.0.0
+version: 3.0.0
 main: com.krylo.smp.KryloSMP
 api-version: '1.21'
 description: The ultimate all-in-one plugin for KryloSMP — Neon Velocity Edition
@@ -59,6 +59,18 @@ commands:
     description: Random teleport to a safe location in the world
     usage: /rtp
     aliases: [wild, randomtp]
+  cape-now:
+    description: Open the cape selection menu
+    usage: /cape-now
+  link:
+    description: Link and verify your Discord account
+    usage: /link
+    aliases: [verify]
+  summonboss:
+    description: Summon a custom boss (operator only)
+    usage: /summonboss <warlord|elder>
+    permission: krylosmp.admin
+    aliases: [sb]
 
 permissions:
   krylosmp.admin:
